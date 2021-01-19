@@ -18,12 +18,51 @@ export default function Kitties (props) {
   const [status, setStatus] = useState('');
 
   const fetchKittyCnt = () => {
-    /* TODO: 加代码，从 substrate 端读取数据过来 */
+    let unsubscribe;
+    api.query.kittiesModule.kittiesCount(count => {
+      setKittyCnt(count.toNumber());
+    }).then(unsub => {
+      unsubscribe = unsub;
+    }).catch(console.error);
+    return () => unsubscribe && unsubscribe();
   };
 
   const fetchKitties = () => {
-    /* TODO: 加代码，从 substrate 端读取数据过来 */
+    let unsubscribe;
+    let cnt = [];
+    for(let i=0; i<kittyCnt; i++){
+      cnt.push(i)
+    }
+    api.query.kittiesModule.kitties.multi(cnt, (data) => {
+        let newdata = data.map((d,i) => {
+          return {
+            dna: d,
+            id: i,
+            is_owner: true
+          }
+        })
+        setKitties(newdata);
+    }).then(unsub => {
+      unsubscribe = unsub;
+    }).catch(console.error);
+    return () => unsubscribe && unsubscribe();
   };
+
+  const fetchKittyOwners = () => {
+    let unsubscribe;
+    let key_arr = [];
+    for (let i=0; i<kittyCnt; i++) {
+      key_arr.push(i);
+    }
+    api.query.kittiesModule.kittyOwners.multi(key_arr, (data) => {
+      
+      setKittyOwners(data);
+    }).then(unsub => {
+      unsubscribe = unsub;
+    }).catch(console.error);
+    return () => unsubscribe && unsubscribe();
+  };
+
 
   const populateKitties = () => {
     /* TODO: 加代码，从 substrate 端读取数据过来 */
@@ -32,10 +71,13 @@ export default function Kitties (props) {
   useEffect(fetchKittyCnt, [api, keyring]);
   useEffect(fetchKitties, [api, kittyCnt]);
   useEffect(populateKitties, [kittyDNAs, kittyOwners]);
+  useEffect(fetchKittyOwners, [api, kittyCnt, setKittyOwners, api.query.kittiesModule]);
+  
 
   return <Grid.Column width={16}>
     <h1>小毛孩</h1>
-    <KittyCards kitties={kitties} accountPair={accountPair} setStatus={setStatus}/>
+    <p>总毛孩个数为: {kittyCnt}</p>
+    <KittyCards kitties={kitties} kittyOwners={kittyOwners}  accountPair={accountPair} setStatus={setStatus}/>
     <Form style={{ margin: '1em 0' }}>
       <Form.Field style={{ textAlign: 'center' }}>
         <TxButton

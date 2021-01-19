@@ -7,12 +7,16 @@ import { TxButton } from './substrate-lib/components';
 // --- About Modal ---
 
 const TransferModal = props => {
-  const { kitty, accountPair, setStatus } = props;
+  const { kitty, is_owner, accountPair, setStatus } = props;
+  if (!is_owner) {
+      return null
+  }
   const [open, setOpen] = React.useState(false);
   const [formValue, setFormValue] = React.useState({});
 
   const formChange = key => (ev, el) => {
     /* TODO: 加代码 */
+    setFormValue(prev => ({ ...prev, [key]: el.value }));
   };
 
   const confirmAndClose = (unsub) => {
@@ -44,7 +48,30 @@ const TransferModal = props => {
 };
 
 // --- About Kitty Card ---
-
+function stringToByte(str) {
+  const bytes = [];
+  let len, c;
+  len = str.length;
+  for(var i = 0; i < len; i++) {
+      c = str.charCodeAt(i);
+      if(c >= 0x010000 && c <= 0x10FFFF) {
+          bytes.push(((c >> 18) & 0x07) | 0xF0);
+          bytes.push(((c >> 12) & 0x3F) | 0x80);
+          bytes.push(((c >> 6) & 0x3F) | 0x80);
+          bytes.push((c & 0x3F) | 0x80);
+      } else if(c >= 0x000800 && c <= 0x00FFFF) {
+          bytes.push(((c >> 12) & 0x0F) | 0xE0);
+          bytes.push(((c >> 6) & 0x3F) | 0x80);
+          bytes.push((c & 0x3F) | 0x80);
+      } else if(c >= 0x000080 && c <= 0x0007FF) {
+          bytes.push(((c >> 6) & 0x1F) | 0xC0);
+          bytes.push((c & 0x3F) | 0x80);
+      } else {
+          bytes.push(c & 0xFF);
+      }
+  }
+  return bytes;
+}
 const KittyCard = props => {
   /*
     TODO: 加代码。这里会 UI 显示一张 `KittyCard` 是怎么样的。这里会用到：
@@ -53,14 +80,51 @@ const KittyCard = props => {
     <TransferModal kitty={kitty} accountPair={accountPair} setStatus={setStatus}/> - 来作转让的弹出层
     ```
   */
-  return null;
+ console.log(props);
+ const { kitty,owner,accountPair, setStatus } = props;
+  const { dna } = kitty;
+  const dna_str = dna.toString();
+  const dna_arr = stringToByte(dna_str.slice(2, dna_str.length));
+  const owner_str = "" + owner;
+  
+  
+
+  let message = "";
+  message =message+ "Owner:"+owner_str+"\n";
+  message =message+ "DNA:"+dna+"\n";
+  let is_owner = accountPair.address === owner_str;
+  if (is_owner) {
+      message += "[我的]";
+  }
+  
+  return (
+      <Grid.Column width={6}>
+          <Card>
+              <Card.Content>
+                  <Card.Header>{kitty.id}</Card.Header>
+                  <KittyAvatar dna={dna_arr} />
+                  <TransferModal kitty={kitty} is_owner={is_owner} accountPair={accountPair} setStatus={setStatus}/>
+                  <Card.Description>
+                    
+                      {message}
+                   
+                  </Card.Description>
+              </Card.Content>
+          </Card>
+      </Grid.Column>
+  );
 };
 
 const KittyCards = props => {
-  const { kitties, accountPair, setStatus } = props;
+  const { kitties, kittyOwners, accountPair, setStatus } = props;
 
   /* TODO: 加代码。这里会枚举所有的 `KittyCard` */
-  return null;
+  
+  return (
+    <Grid>
+        {kitties.map((kitty, index) => <KittyCard key={index} kitty={kitty} owner={kittyOwners[index]}  accountPair={accountPair} setStatus={setStatus}/>)}
+    </Grid>
+);
 };
 
 export default KittyCards;
